@@ -137,7 +137,7 @@
     <div class="card">
       <div class="title"><span class="dot"></span> Glücksrad</div>
       <div class="wheel-wrap">
-        <div class="pointer"></div>
+        <div class="pointer" role="img" aria-label="Zeiger oben am Rad"></div>
         <canvas id="wheel" width="800" height="800" aria-label="Glücksrad"></canvas>
       </div>
       <div class="controls">
@@ -145,7 +145,7 @@
         <button id="shuffleBtn" class="ghost">Farben mischen</button>
         <button id="resetBtn" class="ghost">Zurücksetzen</button>
       </div>
-      <div class="result" id="result">Ergebnis: <span class="value">–</span></div>
+      <div class="result" id="result" aria-live="polite">Ergebnis: <span class="value">–</span></div>
       <div class="footer-note">Tipp: Du kannst die Einträge rechts bearbeiten und auf „Aktualisieren“ klicken.</div>
     </div>
 
@@ -155,7 +155,8 @@
       <div class="field">
         <label for="segmentsInput">Einträge (eine Zeile pro Segment):</label>
         <textarea id="segmentsInput">Herr aufm Kamp
-        Frau Borissov</textarea>
+Frau Borissov
+Julien</textarea>
         <div class="segments-preview" id="segmentsPreview"></div>
       </div>
 
@@ -230,75 +231,58 @@
       return norm(name) === 'julien';
     }
 
-    // Erzwinge die Nachbarschaft auf dem Rad (für Anzeige), optional
-    function enforcePairAdjacency(list) {
+    // Adjazenz für Anzeige, mit Gewichts-Synchronisierung
+    function enforcePairAdjacencyWithWeights(list, w) {
       const a = list.findIndex(isLeon);
       const b = list.findIndex(isJulien);
-      if (a === -1 || b === -1) return list.slice();
-      if (Math.abs(a - b) === 1) return list.slice();
+      if (a === -1 || b === -1 || Math.abs(a - b) === 1) return { list: list.slice(), weights: w.slice() };
+
       const res = list.slice();
+      const wres = w.slice();
       const earlier = Math.min(a, b);
       const later = Math.max(a, b);
-      const moved = res.splice(later, 1)[0];
-      res.splice(earlier + 1, 0, moved);
-      return res;
+
+      const movedName = res.splice(later, 1)[0];
+      const movedWeight = wres.splice(later, 1)[0];
+
+      res.splice(earlier + 1, 0, movedName);
+      wres.splice(earlier + 1, 0, movedWeight);
+
+      return { list: res, weights: wres };
     }
 
-    // Wenn der vorige Gewinner Leon/Julien war, wird der nächste Gewinner erzwungen
+    // Forced next winner (beibehalten, aber Julien gewinnt nie, daher nur Leon-Fall wirksam)
     let forcedNextName = null;
 
-    function parseSegments() {
-      segments = segmentsInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+    function sanitizedWeights() {
+      // Basis: nicht-negative Zahlen, sonst 0
+      let w = weights.map(x => (typeof x === 'number' && x >= 0) ? x : 0);
 
-      // Für Optik: Leon/Julien nebeneinander auf dem Rad halten
-      segments = enforcePairAdjacency(segments);
-
-      // default weights = 1
-      weights = segments.map(_ => 1);
-      if (weightsInput.value.trim().length) {
-        const w = weightsInput.value.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x) && x >= 0);
-        if (w.length === segments.length) weights = w;
+      // Julien immer 0
+      for (let i = 0; i < segments.length; i++) {
+        if (isJulien(segments[i])) w[i] = 0;
       }
-      renderPreview();
-      buildColors();
-      drawWheel();
-    }
 
-    function renderPreview() {
-      preview.innerHTML = '';
-      segments.forEach((s) => {
-        const chip = document.createElement('div');
-        chip.className = 'chip';
-        chip.textContent = s;
-        preview.appendChild(chip);
-      });
-    }
-
-    function buildColors() {
-      const base = [
-        '#7c6cff', '#00d4ff', '#ffb86b', '#2ee6a6', '#ff5d6c',
-        '#ffd166', '#9b5de5', '#00f5d4', '#f15bb5', '#48bfe3',
-        '#80ed99', '#f28482'
-      ];
-      const rand = mulberry32(rngSeed + segments.length);
-      const shuffled = [...base].sort(() => rand() - 0.5);
-      colors = segments.map((_, i) => {
-        if (i < shuffled.length) return shuffled[i];
-        const hue = Math.floor((360 / segments.length) * i);
-        return `hsl(${hue} 75% 55%)`;
-      });
+      // Falls alle 0: setze alle Nicht-Julien auf 1
+      if (w.length && w.every(v => v === 0)) {
+        for (let i = 0; i < w.length; i++) {
+          if (!isJulien(segments[i])) w[i] = 1;
+        }
+      }
+      return w;
     }
 
     function getTotalWeight() {
-      return weights.reduce((a,b)=>a+b,0) || 1;
+      return sanitizedWeights().reduce((a,b)=>a+b,0) || 1;
     }
 
     function angleRanges() {
-      const total = getTotalWeight();
+      const w = sanitizedWeights();
+      const total = w.reduce((a,b)=>a+b,0) || 1;
       const full = Math.PI * 2;
       let acc = 0;
       return segments.map((_, i) => {
-        const frac = (weights[i] || 0) / total;
+        const frac = (w[i] || 0) / total;
         const a0 = acc * full;
         acc += frac;
         const a1 = acc * full;
@@ -307,9 +291,6 @@
     }
 
     function drawWheel() {
-      // Sicherheit: für Anzeige erneut nebeneinander halten
-      segments = enforcePairAdjacency(segments);
-
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0,0,W,H);
       const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 18;
@@ -335,11 +316,12 @@
         ctx.closePath();
         ctx.fill();
 
-        // separators
+        // separators (radial lines)
         ctx.strokeStyle = 'rgba(0,0,0,.25)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(cx, cy, r, a0 + startAngle, a0 + startAngle + 0.005);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a0 + startAngle) * r, cy + Math.sin(a0 + startAngle) * r);
         ctx.stroke();
 
         // labels
@@ -357,7 +339,12 @@
         ctx.font = 'bold 22px system-ui, -apple-system, Segoe UI, Roboto';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        // leichte Lesbarkeit durch Schatten
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 1;
         fitText(ctx, segments[i], r*0.6, 22);
+        ctx.shadowColor = 'transparent';
         ctx.restore();
       }
 
@@ -376,6 +363,19 @@
       ctx.textBaseline = 'middle';
       ctx.fillText('Spin!', cx, cy);
       ctx.restore();
+
+      if (isSpinning) {
+        const t = performance.now() * 0.003;
+        const pul = (Math.sin(t) * 0.5 + 0.5) * 0.5 + 0.3;
+        ctx.save();
+        ctx.globalAlpha = pul;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 68, 0, Math.PI*2);
+        ctx.strokeStyle = '#7c6cff';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     function fitText(ctx, text, maxWidth, baseSize) {
@@ -400,28 +400,52 @@
       return ranges.length - 1;
     }
 
+    function weightedRandomIndex() {
+      const ws = sanitizedWeights();
+      const total = ws.reduce((a,b)=>a+b,0);
+      const r = Math.random() * total;
+      let acc = 0;
+      for (let i=0;i<ws.length;i++) {
+        acc += ws[i];
+        if (r < acc) return i;
+      }
+      return ws.length - 1;
+    }
+
     function spin() {
       if (isSpinning || segments.length === 0) return;
       isSpinning = true;
       lastTickIndex = -1;
 
-      // Für Optik und Konsistenz: nebeneinander halten
-      segments = enforcePairAdjacency(segments);
+      // Für Optik und Konsistenz: Leon/Julien nebeneinander halten (Gewichte mitbewegen)
+      ({ list: segments, weights } = enforcePairAdjacencyWithWeights(segments, weights));
       segmentsInput.value = segments.join('\n');
+      weightsInput.value = weights.join(',');
 
       const duration = Math.max(1, Math.min(12, Number(spinTimeInput.value) || 5));
 
-      // Zielindex bestimmen: wenn forcedNextName gesetzt ist und vorhanden -> diesen wählen
+      // Zielindex bestimmen
       let idx;
       if (forcedNextName) {
         const forcedIdx = segments.findIndex(n => norm(n) === norm(forcedNextName));
         if (forcedIdx !== -1) {
           idx = forcedIdx;
         } else {
-          idx = weightedRandomIndex(weights); // falls nicht vorhanden, normal
+          idx = weightedRandomIndex();
         }
       } else {
-        idx = weightedRandomIndex(weights);
+        idx = weightedRandomIndex();
+      }
+
+      // Sicherheits-Check: Julien nie gewinnen lassen
+      if (isJulien(segments[idx])) {
+        const ws = sanitizedWeights();
+        let found = -1;
+        for (let i = 0; i < ws.length; i++) {
+          const j = (idx + 1 + i) % ws.length;
+          if (ws[j] > 0 && !isJulien(segments[j])) { found = j; break; }
+        }
+        if (found !== -1) idx = found;
       }
 
       const ranges = angleRanges();
@@ -472,14 +496,14 @@
 
           // NÄCHSTE-ZIEHUNG erzwingen je nach Gewinner
           if (isLeon(winText)) {
-            // Nach Leon/Leon M muss Julien kommen
+            // Nach Leon/Leon M muss Julien kommen (wird später eh nicht gewinnen dürfen,
+            // bleibt aber als Anzeigeintention bestehen)
             forcedNextName = 'Julien';
           } else if (isJulien(winText)) {
-            // Nach Julien muss Leon oder Leon M kommen – bevorzuge "Leon", sonst "Leon M"
+            // Wird praktisch nie eintreten, aber zur Vollständigkeit:
             forcedNextName = segments.some(s => isLeon(s) && norm(s) === 'leon') ? 'Leon' :
                              (segments.some(s => norm(s) === 'leon m') ? 'Leon M' : null);
           } else {
-            // Keine erzwungene nächste Ziehung
             forcedNextName = null;
           }
 
@@ -488,32 +512,22 @@
             segments.splice(winIndex, 1);
             weights.splice(winIndex, 1);
 
-            // Falls wir gerade denjenigen entfernt haben, der als nächstes erzwungen wäre, prüfen
+            // Falls forcedNextName nicht mehr existiert, löschen
             if (forcedNextName && segments.findIndex(n => norm(n) === norm(forcedNextName)) === -1) {
               forcedNextName = null;
             }
 
-            // Optik: Leon/Julien nebeneinander halten
-            segments = enforcePairAdjacency(segments);
+            // Leon/Julien Adjazenz wahren
+            ({ list: segments, weights } = enforcePairAdjacencyWithWeights(segments, weights));
 
             segmentsInput.value = segments.join('\n');
             weightsInput.value = weights.join(',');
+
             setTimeout(() => parseSegments(), 250);
           }
         }
       }
       requestAnimationFrame(frame);
-    }
-
-    function weightedRandomIndex(w) {
-      const total = w.reduce((a,b)=>a+b,0);
-      const r = Math.random() * total;
-      let acc = 0;
-      for (let i=0;i<w.length;i++) {
-        acc += w[i];
-        if (r < acc) return i;
-      }
-      return w.length - 1;
     }
 
     // Confetti (simple)
@@ -574,7 +588,7 @@
     }
 
     function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+      return (str||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
     // Buttons
@@ -585,8 +599,7 @@
       drawWheel();
     });
     resetBtn.addEventListener('click', () => {
-      segmentsInput.value = `Herr aufm Kamp
-      Frau Borissov`;
+      setDefaultSegments();
       weightsInput.value = '';
       removeWinner.checked = false;
       clickSound.checked = true;
@@ -601,8 +614,66 @@
       parseSegments();
     });
 
+    function setDefaultSegments() {
+      segmentsInput.value = ['Herr aufm Kamp', 'Frau Borissov', 'Julien'].join('\n');
+    }
+
+    function renderPreview() {
+      preview.innerHTML = '';
+      segments.forEach((s) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = s;
+        preview.appendChild(chip);
+      });
+    }
+
+    function buildColors() {
+      const base = [
+        '#7c6cff', '#00d4ff', '#ffb86b', '#2ee6a6', '#ff5d6c',
+        '#ffd166', '#9b5de5', '#00f5d4', '#f15bb5', '#48bfe3',
+        '#80ed99', '#f28482'
+      ];
+      const rand = mulberry32(rngSeed + segments.length);
+      const shuffled = [...base].sort(() => rand() - 0.5);
+      colors = segments.map((_, i) => {
+        if (i < shuffled.length) return shuffled[i];
+        const hue = Math.floor((360 / segments.length) * i);
+        return `hsl(${hue} 75% 55%)`;
+      });
+    }
+
+    function parseSegments() {
+      segments = segmentsInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+
+      // default weights = 1
+      weights = segments.map(_ => 1);
+      if (weightsInput.value.trim().length) {
+        const w = weightsInput.value.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x) && x >= 0);
+        if (w.length === segments.length) weights = w;
+      }
+
+      // Julien nie wählbar: Gewicht 0
+      for (let i = 0; i < segments.length; i++) {
+        if (isJulien(segments[i])) weights[i] = 0;
+      }
+
+      // Für Optik: Leon/Julien nebeneinander; Gewichte mitbewegen
+      ({ list: segments, weights } = enforcePairAdjacencyWithWeights(segments, weights));
+
+      renderPreview();
+      buildColors();
+      drawWheel();
+    }
+
     // Init
     parseSegments();
+
+    // Farben neu mischen basiert auf Seed
+    function buildColorsIfNeeded() {
+      buildColors();
+      drawWheel();
+    }
   </script>
 </body>
 </html>
