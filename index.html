@@ -1,679 +1,608 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Glücksrad</title>
-  <style>
-    :root {
-      --bg: #0f1220;
-      --panel: #171a2b;
-      --text: #e9ecf1;
-      --accent: #7c6cff;
-      --accent-2: #00d4ff;
-      --muted: #9aa3b2;
-      --win: #2ee6a6;
-      --danger: #ff5d6c;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: radial-gradient(1200px 600px at 50% -100px, #1b2140 0%, var(--bg) 45%, #0b0e1a 100%);
-      color: var(--text);
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-    }
-    .app {
-      width: 100%;
-      max-width: 980px;
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 20px;
-    }
-    @media (max-width: 900px) {
-      .app { grid-template-columns: 1fr; }
-    }
-    .card {
-      background: linear-gradient(180deg, #1a1f3b 0%, var(--panel) 60%);
-      border: 1px solid #23284a;
-      border-radius: 16px;
-      box-shadow: 0 20px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
-      padding: 16px;
-    }
-    .title {
-      display: flex; align-items: center; gap: 10px; margin: 6px 6px 14px;
-      font-weight: 700; letter-spacing: .2px;
-    }
-    .title .dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px var(--accent); }
-    .wheel-wrap {
-      position: relative;
-      display: grid;
-      place-items: center;
-      padding: 10px;
-      aspect-ratio: 1 / 1;
-    }
-    canvas#wheel {
-      width: 100%;
-      max-width: 640px;
-      aspect-ratio: 1 / 1;
-      filter: drop-shadow(0 14px 35px rgba(0,0,0,.5));
-    }
-    .pointer {
-      position: absolute;
-      top: 10px;
-      width: 0; height: 0;
-      border-left: 18px solid transparent;
-      border-right: 18px solid transparent;
-      border-bottom: 30px solid var(--accent-2);
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,.4));
-    }
-    .controls {
-      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center;
-      margin-top: 14px;
-    }
-    button.primary {
-      background: linear-gradient(180deg, #7366ff, #5b4dff);
-      color: #fff;
-      border: none;
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-weight: 700;
-      letter-spacing: .3px;
-      cursor: pointer;
-      box-shadow: 0 10px 24px rgba(92, 77, 255, .35);
-      transition: transform .08s ease, filter .2s ease;
-    }
-    button.primary:active { transform: translateY(1px) scale(.995); }
-    button.ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid #2b3158;
-      padding: 10px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    .result {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 18px;
-      color: var(--muted);
-    }
-    .result .value { color: var(--win); font-weight: 800; font-size: 22px; }
-    .side {
-      display: grid; gap: 14px;
-      align-content: start;
-    }
-    .field { display: grid; gap: 8px; }
-    .field label { font-size: 13px; color: var(--muted); }
-    textarea, input[type="text"], input[type="number"] {
-      width: 100%;
-      background: #12162b;
-      color: #e9ecf1;
-      border: 1px solid #23284a;
-      border-radius: 10px;
-      padding: 10px 12px;
-      outline: none;
-    }
-    textarea { min-height: 120px; resize: vertical; }
-    .segments-preview {
-      display: flex; flex-wrap: wrap; gap: 6px;
-    }
-    .chip {
-      padding: 6px 10px; border-radius: 999px; border: 1px solid #2b3158; background: #161a31; color: #cdd3e0; font-size: 12px;
-    }
-    .footer-note {
-      text-align: center; opacity: .7; font-size: 12px; margin-top: 10px;
-    }
-    .confetti {
-      position: fixed; inset: 0; pointer-events: none; z-index: 9;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glücksrad</title>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #171a2b;
+      --text: #e9ecf1;
+      --accent: #7c6cff;
+      --accent-2: #00d4ff;
+      --muted: #9aa3b2;
+      --win: #2ee6a6;
+      --danger: #ff5d6c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -100px, #1b2140 0%, var(--bg) 45%, #0b0e1a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .app {
+      width: 100%;
+      max-width: 980px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: linear-gradient(180deg, #1a1f3b 0%, var(--panel) 60%);
+      border: 1px solid #23284a;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+      padding: 16px;
+    }
+    .title {
+      display: flex; align-items: center; gap: 10px; margin: 6px 6px 14px;
+      font-weight: 700; letter-spacing: .2px;
+    }
+    .title .dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px var(--accent); }
+    .wheel-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 10px;
+      aspect-ratio: 1 / 1;
+    }
+    canvas#wheel {
+      width: 100%;
+      max-width: 640px;
+      aspect-ratio: 1 / 1;
+      filter: drop-shadow(0 14px 35px rgba(0,0,0,.5));
+    }
+    .pointer {
+      position: absolute;
+      top: 10px;
+      width: 0; height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-bottom: 30px solid var(--accent-2);
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,.4));
+    }
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center;
+      margin-top: 14px;
+    }
+    button.primary {
+      background: linear-gradient(180deg, #7366ff, #5b4dff);
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(92, 77, 255, .35);
+      transition: transform .08s ease, filter .2s ease;
+    }
+    button.primary:active { transform: translateY(1px) scale(.995); }
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #2b3158;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .result {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 18px;
+      color: var(--muted);
+    }
+    .result .value { color: var(--win); font-weight: 800; font-size: 22px; }
+    .side {
+      display: grid; gap: 14px;
+      align-content: start;
+    }
+    .field { display: grid; gap: 8px; }
+    .field label { font-size: 13px; color: var(--muted); }
+    textarea, input[type="text"], input[type="number"] {
+      width: 100%;
+      background: #12162b;
+      color: #e9ecf1;
+      border: 1px solid #23284a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    .segments-preview {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .chip {
+      padding: 6px 10px; border-radius: 999px; border: 1px solid #2b3158; background: #161a31; color: #cdd3e0; font-size: 12px;
+    }
+    .footer-note {
+      text-align: center; opacity: .7; font-size: 12px; margin-top: 10px;
+    }
+    .confetti {
+      position: fixed; inset: 0; pointer-events: none; z-index: 9;
+    }
+  </style>
 </head>
 <body>
-  <div class="app">
-    <div class="card">
-      <div class="title"><span class="dot"></span> Glücksrad</div>
-      <div class="wheel-wrap">
-        <div class="pointer" role="img" aria-label="Zeiger oben am Rad"></div>
-        <canvas id="wheel" width="800" height="800" aria-label="Glücksrad"></canvas>
-      </div>
-      <div class="controls">
-        <button id="spinBtn" class="primary">Drehen</button>
-        <button id="shuffleBtn" class="ghost">Farben mischen</button>
-        <button id="resetBtn" class="ghost">Zurücksetzen</button>
-      </div>
-      <div class="result" id="result" aria-live="polite">Ergebnis: <span class="value">–</span></div>
-      <div class="footer-note">Tipp: Du kannst die Einträge rechts bearbeiten und auf „Aktualisieren“ klicken.</div>
-    </div>
-
-    <div class="card side">
-      <div class="title"><span class="dot"></span> Einträge & Optionen</div>
-
-      <div class="field">
-        <label for="segmentsInput">Einträge (eine Zeile pro Segment):</label>
-        <textarea id="segmentsInput">Herr aufm Kamp
-Frau Borissov
-Julien</textarea>
-        <div class="segments-preview" id="segmentsPreview"></div>
-      </div>
-
-      <div class="field">
-        <label for="weightsInput">Gewichte optional (kommagetrennt, gleiche Anzahl wie Einträge):</label>
-        <input id="weightsInput" type="text" placeholder="z.B. 1,1,2,1,3,1,1,1">
-      </div>
-
-      <div class="field">
-        <label for="spinTime">Drehdauer in Sekunden:</label>
-        <input id="spinTime" type="number" min="1" max="12" value="5">
-      </div>
-
-      <div class="controls" style="justify-content:flex-start;">
-        <button id="applyBtn" class="primary" style="padding:10px 14px;">Aktualisieren</button>
-        <label style="display:flex; align-items:center; gap:8px; color: var(--muted);">
-          <input type="checkbox" id="removeWinner"> Gewinnersegment entfernen
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; color: var(--muted);">
-          <input type="checkbox" id="clickSound" checked> Klicken-Sound
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <canvas class="confetti" id="confetti"></canvas>
-
-  <audio id="tick" preload="auto">
-    <source src="https://cdn.jsdelivr.net/gh/jackyzha0/hackclub-assets@main/sounds/tick.mp3" type="audio/mpeg">
-  </audio>
-
-  <script>
-    // Utility: PRNG for color shuffle
-    function mulberry32(a) {
-      return function() {
-        var t = a += 0x6D2B79F5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-      }
-    }
-
-    const canvas = document.getElementById('wheel');
-    const ctx = canvas.getContext('2d');
-    let segments = [];
-    let weights = [];
-    let colors = [];
-    let startAngle = -Math.PI / 2; // pointer is at 12 o'clock
-    let isSpinning = false;
-    let lastTickIndex = -1;
-    let rngSeed = Math.floor(Math.random()*1e9);
-
-    const spinBtn = document.getElementById('spinBtn');
-    const shuffleBtn = document.getElementById('shuffleBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const applyBtn = document.getElementById('applyBtn');
-    const segmentsInput = document.getElementById('segmentsInput');
-    const weightsInput = document.getElementById('weightsInput');
-    const preview = document.getElementById('segmentsPreview');
-    const spinTimeInput = document.getElementById('spinTime');
-    const removeWinner = document.getElementById('removeWinner');
-    const clickSound = document.getElementById('clickSound');
-    const tick = document.getElementById('tick');
-
-    // Namenserkennung: Leon (inkl. "Leon M") und Julien
-    function norm(s){ return (s||'').toString().trim().toLowerCase().replace(/\s+/g,' '); }
-    function isLeon(name){
-      const n = norm(name);
-      return n === 'leon' || n === 'leon m';
-    }
-    function isJulien(name){
-      return norm(name) === 'julien';
-    }
-
-    // Adjazenz für Anzeige, mit Gewichts-Synchronisierung
-    function enforcePairAdjacencyWithWeights(list, w) {
-      const a = list.findIndex(isLeon);
-      const b = list.findIndex(isJulien);
-      if (a === -1 || b === -1 || Math.abs(a - b) === 1) return { list: list.slice(), weights: w.slice() };
-
-      const res = list.slice();
-      const wres = w.slice();
-      const earlier = Math.min(a, b);
-      const later = Math.max(a, b);
-
-      const movedName = res.splice(later, 1)[0];
-      const movedWeight = wres.splice(later, 1)[0];
-
-      res.splice(earlier + 1, 0, movedName);
-      wres.splice(earlier + 1, 0, movedWeight);
-
-      return { list: res, weights: wres };
-    }
-
-    // Forced next winner (beibehalten, aber Julien gewinnt nie, daher nur Leon-Fall wirksam)
-    let forcedNextName = null;
-
-    function sanitizedWeights() {
-      // Basis: nicht-negative Zahlen, sonst 0
-      let w = weights.map(x => (typeof x === 'number' && x >= 0) ? x : 0);
-
-      // Julien immer 0
-      for (let i = 0; i < segments.length; i++) {
-        if (isJulien(segments[i])) w[i] = 0;
-      }
-
-      // Falls alle 0: setze alle Nicht-Julien auf 1
-      if (w.length && w.every(v => v === 0)) {
-        for (let i = 0; i < w.length; i++) {
-          if (!isJulien(segments[i])) w[i] = 1;
-        }
-      }
-      return w;
-    }
-
-    function getTotalWeight() {
-      return sanitizedWeights().reduce((a,b)=>a+b,0) || 1;
-    }
-
-    function angleRanges() {
-      const w = sanitizedWeights();
-      const total = w.reduce((a,b)=>a+b,0) || 1;
-      const full = Math.PI * 2;
-      let acc = 0;
-      return segments.map((_, i) => {
-        const frac = (w[i] || 0) / total;
-        const a0 = acc * full;
-        acc += frac;
-        const a1 = acc * full;
-        return [a0, a1];
-      });
-    }
-
-    function drawWheel() {
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0,0,W,H);
-      const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 18;
-
-      // outer ring
-      ctx.save();
-      const grd = ctx.createRadialGradient(cx, cy, r*0.1, cx, cy, r*1.05);
-      grd.addColorStop(0, '#23284a');
-      grd.addColorStop(1, '#0f1220');
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r+14, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-
-      const ranges = angleRanges();
-      for (let i=0;i<segments.length;i++) {
-        const [a0, a1] = ranges[i];
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.arc(cx, cy, r, a0 + startAngle, a1 + startAngle);
-        ctx.closePath();
-        ctx.fill();
-
-        // separators (radial lines)
-        ctx.strokeStyle = 'rgba(0,0,0,.25)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(a0 + startAngle) * r, cy + Math.sin(a0 + startAngle) * r);
-        ctx.stroke();
-
-        // labels
-        const mid = (a0 + a1) / 2 + startAngle;
-        const tx = cx + Math.cos(mid) * r * 0.68;
-        const ty = cy + Math.sin(mid) * r * 0.68;
-        ctx.save();
-        ctx.translate(tx, ty);
-        ctx.rotate(mid + Math.PI/2);
-        ctx.fillStyle = '#0b0e1a';
-        ctx.globalAlpha = 0.12;
-        ctx.fillRect(-r*0.32, -18, r*0.64, 36);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 22px system-ui, -apple-system, Segoe UI, Roboto';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        // leichte Lesbarkeit durch Schatten
-        ctx.shadowColor = 'rgba(0,0,0,0.35)';
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetY = 1;
-        fitText(ctx, segments[i], r*0.6, 22);
-        ctx.shadowColor = 'transparent';
-        ctx.restore();
-      }
-
-      // center cap
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, 68, 0, Math.PI*2);
-      ctx.fillStyle = '#12162b';
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#2b3158';
-      ctx.stroke();
-      ctx.font = 'bold 16px system-ui';
-      ctx.fillStyle = '#cdd3e0';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Spin!', cx, cy);
-      ctx.restore();
-
-      if (isSpinning) {
-        const t = performance.now() * 0.003;
-        const pul = (Math.sin(t) * 0.5 + 0.5) * 0.5 + 0.3;
-        ctx.save();
-        ctx.globalAlpha = pul;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 68, 0, Math.PI*2);
-        ctx.strokeStyle = '#7c6cff';
-        ctx.lineWidth = 6;
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    function fitText(ctx, text, maxWidth, baseSize) {
-      let size = baseSize;
-      ctx.font = `bold ${size}px system-ui, -apple-system, Segoe UI, Roboto`;
-      while (ctx.measureText(text).width > maxWidth && size > 10) {
-        size -= 1;
-        ctx.font = `bold ${size}px system-ui, -apple-system, Segoe UI, Roboto`;
-      }
-      ctx.fillText(text, 0, 0);
-    }
-
-    function pickByAngle(angle) {
-      const ranges = angleRanges();
-      const two = Math.PI*2;
-      let x = angle % two;
-      if (x < 0) x += two;
-      for (let i=0;i<ranges.length;i++) {
-        const [a0, a1] = ranges[i];
-        if (x >= a0 && x < a1) return i;
-      }
-      return ranges.length - 1;
-    }
-
-    function weightedRandomIndex() {
-      const ws = sanitizedWeights();
-      const total = ws.reduce((a,b)=>a+b,0);
-      const r = Math.random() * total;
-      let acc = 0;
-      for (let i=0;i<ws.length;i++) {
-        acc += ws[i];
-        if (r < acc) return i;
-      }
-      return ws.length - 1;
-    }
-
-    function spin() {
-      if (isSpinning || segments.length === 0) return;
-      isSpinning = true;
-      lastTickIndex = -1;
-
-      // Für Optik und Konsistenz: Leon/Julien nebeneinander halten (Gewichte mitbewegen)
-      ({ list: segments, weights } = enforcePairAdjacencyWithWeights(segments, weights));
-      segmentsInput.value = segments.join('\n');
-      weightsInput.value = weights.join(',');
-
-      const duration = Math.max(1, Math.min(12, Number(spinTimeInput.value) || 5));
-
-      // Zielindex bestimmen
-      let idx;
-      if (forcedNextName) {
-        const forcedIdx = segments.findIndex(n => norm(n) === norm(forcedNextName));
-        if (forcedIdx !== -1) {
-          idx = forcedIdx;
-        } else {
-          idx = weightedRandomIndex();
-        }
-      } else {
-        idx = weightedRandomIndex();
-      }
-
-      // Sicherheits-Check: Julien nie gewinnen lassen
-      if (isJulien(segments[idx])) {
-        const ws = sanitizedWeights();
-        let found = -1;
-        for (let i = 0; i < ws.length; i++) {
-          const j = (idx + 1 + i) % ws.length;
-          if (ws[j] > 0 && !isJulien(segments[j])) { found = j; break; }
-        }
-        if (found !== -1) idx = found;
-      }
-
-      const ranges = angleRanges();
-      const [a0, a1] = ranges[idx];
-      const targetMid = (a0 + a1) / 2;
-      const two = Math.PI*2;
-      const pointerAngle = (-Math.PI/2 - startAngle) % two;
-      const current = (pointerAngle + two) % two;
-      let delta = (targetMid - current);
-      delta = ((delta % two) + two) % two;
-      const extra = two * (3 + Math.floor(Math.random()*2)); // 3-4 Umdrehungen
-      const totalDelta = delta + extra;
-
-      const frames = Math.max(60, Math.floor(60 * duration));
-      let t = 0;
-      const start = startAngle;
-      const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
-
-      function frame() {
-        t++;
-        const progress = t / frames;
-        const eased = easeOutCubic(progress);
-        const angleNow = start - (totalDelta * eased);
-        startAngle = angleNow;
-
-        if (clickSound.checked) {
-          const idxNow = pickByAngle((-Math.PI/2 - startAngle) % (Math.PI*2));
-          if (idxNow !== lastTickIndex) {
-            tick.currentTime = 0;
-            tick.play().catch(()=>{});
-            lastTickIndex = idxNow;
-          }
-        }
-
-        drawWheel();
-
-        if (t < frames) {
-          requestAnimationFrame(frame);
-        } else {
-          isSpinning = false;
-          startAngle = start - (delta + extra);
-          drawWheel();
-
-          const winIndex = idx;
-          const winText = segments[winIndex];
-          showResult(winText);
-          burstConfetti();
-
-          // NÄCHSTE-ZIEHUNG erzwingen je nach Gewinner
-          if (isLeon(winText)) {
-            // Nach Leon/Leon M muss Julien kommen (wird später eh nicht gewinnen dürfen,
-            // bleibt aber als Anzeigeintention bestehen)
-            forcedNextName = 'Julien';
-          } else if (isJulien(winText)) {
-            // Wird praktisch nie eintreten, aber zur Vollständigkeit:
-            forcedNextName = segments.some(s => isLeon(s) && norm(s) === 'leon') ? 'Leon' :
-                             (segments.some(s => norm(s) === 'leon m') ? 'Leon M' : null);
-          } else {
-            forcedNextName = null;
-          }
-
-          if (removeWinner.checked) {
-            // Gewinner entfernen
-            segments.splice(winIndex, 1);
-            weights.splice(winIndex, 1);
-
-            // Falls forcedNextName nicht mehr existiert, löschen
-            if (forcedNextName && segments.findIndex(n => norm(n) === norm(forcedNextName)) === -1) {
-              forcedNextName = null;
-            }
-
-            // Leon/Julien Adjazenz wahren
-            ({ list: segments, weights } = enforcePairAdjacencyWithWeights(segments, weights));
-
-            segmentsInput.value = segments.join('\n');
-            weightsInput.value = weights.join(',');
-
-            setTimeout(() => parseSegments(), 250);
-          }
-        }
-      }
-      requestAnimationFrame(frame);
-    }
-
-    // Confetti (simple)
-    const confettiCanvas = document.getElementById('confetti');
-    const cctx = confettiCanvas.getContext('2d');
-    let confettiPieces = [];
-
-    function resizeConfetti() {
-      confettiCanvas.width = window.innerWidth;
-      confettiCanvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeConfetti);
-    resizeConfetti();
-
-    function burstConfetti() {
-      const colors = ['#7c6cff','#00d4ff','#ffd166','#2ee6a6','#ff5d6c','#f15bb5'];
-      const count = 120;
-      const cx = confettiCanvas.width/2;
-      const cy = 80;
-      for (let i=0;i<count;i++) {
-        confettiPieces.push({
-          x: cx, y: cy,
-          vx: (Math.random()-0.5)*6,
-          vy: Math.random()*-8 - 3,
-          g: 0.2 + Math.random()*0.05,
-          s: 4 + Math.random()*4,
-          rot: Math.random()*Math.PI,
-          vr: (Math.random()-0.5)*0.3,
-          color: colors[i % colors.length],
-          life: 120 + Math.random()*60
-        });
-      }
-    }
-
-    function animateConfetti() {
-      cctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
-      confettiPieces.forEach(p => {
-        p.vy += p.g;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rot += p.vr;
-        p.life -= 1;
-
-        cctx.save();
-        cctx.translate(p.x, p.y);
-        cctx.rotate(p.rot);
-        cctx.fillStyle = p.color;
-        cctx.fillRect(-p.s/2, -p.s/2, p.s, p.s * 0.6);
-        cctx.restore();
-      });
-      confettiPieces = confettiPieces.filter(p => p.life > 0 && p.y < confettiCanvas.height + 20);
-      requestAnimationFrame(animateConfetti);
-    }
-    animateConfetti();
-
-    function showResult(text) {
-      document.getElementById('result').innerHTML = 'Ergebnis: <span class="value">' + escapeHtml(text) + '</span>';
-    }
-
-    function escapeHtml(str) {
-      return (str||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-    }
-
-    // Buttons
-    spinBtn.addEventListener('click', spin);
-    shuffleBtn.addEventListener('click', () => {
-      rngSeed = Math.floor(Math.random()*1e9);
-      buildColors();
-      drawWheel();
-    });
-    resetBtn.addEventListener('click', () => {
-      setDefaultSegments();
-      weightsInput.value = '';
-      removeWinner.checked = false;
-      clickSound.checked = true;
-      spinTimeInput.value = 5;
-      rngSeed = Math.floor(Math.random()*1e9);
-      forcedNextName = null;
-      parseSegments();
-      showResult('–');
-    });
-    applyBtn.addEventListener('click', () => {
-      forcedNextName = null; // bei manueller Änderung Zwang zurücksetzen (optional)
-      parseSegments();
-    });
-
-    function setDefaultSegments() {
-      segmentsInput.value = ['Herr aufm Kamp', 'Frau Borissov', 'Julien'].join('\n');
-    }
-
-    function renderPreview() {
-      preview.innerHTML = '';
-      segments.forEach((s) => {
-        const chip = document.createElement('div');
-        chip.className = 'chip';
-        chip.textContent = s;
-        preview.appendChild(chip);
-      });
-    }
-
-    function buildColors() {
-      const base = [
-        '#7c6cff', '#00d4ff', '#ffb86b', '#2ee6a6', '#ff5d6c',
-        '#ffd166', '#9b5de5', '#00f5d4', '#f15bb5', '#48bfe3',
-        '#80ed99', '#f28482'
-      ];
-      const rand = mulberry32(rngSeed + segments.length);
-      const shuffled = [...base].sort(() => rand() - 0.5);
-      colors = segments.map((_, i) => {
-        if (i < shuffled.length) return shuffled[i];
-        const hue = Math.floor((360 / segments.length) * i);
-        return `hsl(${hue} 75% 55%)`;
-      });
-    }
-
-    function parseSegments() {
-      segments = segmentsInput.value.split('\n').map(s => s.trim()).filter(Boolean);
-
-      // default weights = 1
-      weights = segments.map(_ => 1);
-      if (weightsInput.value.trim().length) {
-        const w = weightsInput.value.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x) && x >= 0);
-        if (w.length === segments.length) weights = w;
-      }
-
-      // Julien nie wählbar: Gewicht 0
-      for (let i = 0; i < segments.length; i++) {
-        if (isJulien(segments[i])) weights[i] = 0;
-      }
-
-      // Für Optik: Leon/Julien nebeneinander; Gewichte mitbewegen
-      ({ list: segments, weights } = enforcePairAdjacencyWithWeights(segments, weights));
-
-      renderPreview();
-      buildColors();
-      drawWheel();
-    }
-
-    // Init
-    parseSegments();
-
-    // Farben neu mischen basiert auf Seed
-    function buildColorsIfNeeded() {
-      buildColors();
-      drawWheel();
-    }
-  </script>
+  <div class="app">
+    <div class="card">
+      <div class="title"><span class="dot"></span> Glücksrad</div>
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="800" height="800" aria-label="Glücksrad"></canvas>
+      </div>
+      <div class="controls">
+        <button id="spinBtn" class="primary">Drehen</button>
+        <button id="shuffleBtn" class="ghost">Farben mischen</button>
+        <button id="resetBtn" class="ghost">Zurücksetzen</button>
+      </div>
+      <div class="result" id="result">Ergebnis: <span class="value">–</span></div>
+      <div class="footer-note">Tipp: Du kannst die Einträge rechts bearbeiten und auf „Aktualisieren“ klicken.</div>
+    </div>
+
+    <div class="card side">
+      <div class="title"><span class="dot"></span> Einträge & Optionen</div>
+
+      <div class="field">
+        <label for="segmentsInput">Einträge (eine Zeile pro Segment):</label>
+        <textarea id="segmentsInput">Herr aufm Kamp
+        Frau Borissov</textarea>
+        <div class="segments-preview" id="segmentsPreview"></div>
+      </div>
+
+      <div class="field">
+        <label for="weightsInput">Gewichte optional (kommagetrennt, gleiche Anzahl wie Einträge):</label>
+        <input id="weightsInput" type="text" placeholder="z.B. 1,1,2,1,3,1,1,1">
+      </div>
+
+      <div class="field">
+        <label for="spinTime">Drehdauer in Sekunden:</label>
+        <input id="spinTime" type="number" min="1" max="12" value="5">
+      </div>
+
+      <div class="controls" style="justify-content:flex-start;">
+        <button id="applyBtn" class="primary" style="padding:10px 14px;">Aktualisieren</button>
+        <label style="display:flex; align-items:center; gap:8px; color: var(--muted);">
+          <input type="checkbox" id="removeWinner"> Gewinnersegment entfernen
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; color: var(--muted);">
+          <input type="checkbox" id="clickSound" checked> Klicken-Sound
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <canvas class="confetti" id="confetti"></canvas>
+
+  <audio id="tick" preload="auto">
+    <source src="https://cdn.jsdelivr.net/gh/jackyzha0/hackclub-assets@main/sounds/tick.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // Utility: PRNG for color shuffle
+    function mulberry32(a) {
+      return function() {
+        var t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      }
+    }
+
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    let segments = [];
+    let weights = [];
+    let colors = [];
+    let startAngle = -Math.PI / 2; // pointer is at 12 o'clock
+    let isSpinning = false;
+    let lastTickIndex = -1;
+    let rngSeed = Math.floor(Math.random()*1e9);
+
+    const spinBtn = document.getElementById('spinBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const applyBtn = document.getElementById('applyBtn');
+    const segmentsInput = document.getElementById('segmentsInput');
+    const weightsInput = document.getElementById('weightsInput');
+    const preview = document.getElementById('segmentsPreview');
+    const spinTimeInput = document.getElementById('spinTime');
+    const removeWinner = document.getElementById('removeWinner');
+    const clickSound = document.getElementById('clickSound');
+    const tick = document.getElementById('tick');
+
+    // Namenserkennung: Leon (inkl. "Leon M") und Julien
+    function norm(s){ return (s||'').toString().trim().toLowerCase().replace(/\s+/g,' '); }
+    function isLeon(name){
+      const n = norm(name);
+      return n === 'leon' || n === 'leon m';
+    }
+    function isJulien(name){
+      return norm(name) === 'julien';
+    }
+
+    // Erzwinge die Nachbarschaft auf dem Rad (für Anzeige), optional
+    function enforcePairAdjacency(list) {
+      const a = list.findIndex(isLeon);
+      const b = list.findIndex(isJulien);
+      if (a === -1 || b === -1) return list.slice();
+      if (Math.abs(a - b) === 1) return list.slice();
+      const res = list.slice();
+      const earlier = Math.min(a, b);
+      const later = Math.max(a, b);
+      const moved = res.splice(later, 1)[0];
+      res.splice(earlier + 1, 0, moved);
+      return res;
+    }
+
+    // Wenn der vorige Gewinner Leon/Julien war, wird der nächste Gewinner erzwungen
+    let forcedNextName = null;
+
+    function parseSegments() {
+      segments = segmentsInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+
+      // Für Optik: Leon/Julien nebeneinander auf dem Rad halten
+      segments = enforcePairAdjacency(segments);
+
+      // default weights = 1
+      weights = segments.map(_ => 1);
+      if (weightsInput.value.trim().length) {
+        const w = weightsInput.value.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x) && x >= 0);
+        if (w.length === segments.length) weights = w;
+      }
+      renderPreview();
+      buildColors();
+      drawWheel();
+    }
+
+    function renderPreview() {
+      preview.innerHTML = '';
+      segments.forEach((s) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = s;
+        preview.appendChild(chip);
+      });
+    }
+
+    function buildColors() {
+      const base = [
+        '#7c6cff', '#00d4ff', '#ffb86b', '#2ee6a6', '#ff5d6c',
+        '#ffd166', '#9b5de5', '#00f5d4', '#f15bb5', '#48bfe3',
+        '#80ed99', '#f28482'
+      ];
+      const rand = mulberry32(rngSeed + segments.length);
+      const shuffled = [...base].sort(() => rand() - 0.5);
+      colors = segments.map((_, i) => {
+        if (i < shuffled.length) return shuffled[i];
+        const hue = Math.floor((360 / segments.length) * i);
+        return `hsl(${hue} 75% 55%)`;
+      });
+    }
+
+    function getTotalWeight() {
+      return weights.reduce((a,b)=>a+b,0) || 1;
+    }
+
+    function angleRanges() {
+      const total = getTotalWeight();
+      const full = Math.PI * 2;
+      let acc = 0;
+      return segments.map((_, i) => {
+        const frac = (weights[i] || 0) / total;
+        const a0 = acc * full;
+        acc += frac;
+        const a1 = acc * full;
+        return [a0, a1];
+      });
+    }
+
+    function drawWheel() {
+      // Sicherheit: für Anzeige erneut nebeneinander halten
+      segments = enforcePairAdjacency(segments);
+
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 18;
+
+      // outer ring
+      ctx.save();
+      const grd = ctx.createRadialGradient(cx, cy, r*0.1, cx, cy, r*1.05);
+      grd.addColorStop(0, '#23284a');
+      grd.addColorStop(1, '#0f1220');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r+14, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      const ranges = angleRanges();
+      for (let i=0;i<segments.length;i++) {
+        const [a0, a1] = ranges[i];
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.arc(cx, cy, r, a0 + startAngle, a1 + startAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        // separators
+        ctx.strokeStyle = 'rgba(0,0,0,.25)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, a0 + startAngle, a0 + startAngle + 0.005);
+        ctx.stroke();
+
+        // labels
+        const mid = (a0 + a1) / 2 + startAngle;
+        const tx = cx + Math.cos(mid) * r * 0.68;
+        const ty = cy + Math.sin(mid) * r * 0.68;
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.rotate(mid + Math.PI/2);
+        ctx.fillStyle = '#0b0e1a';
+        ctx.globalAlpha = 0.12;
+        ctx.fillRect(-r*0.32, -18, r*0.64, 36);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 22px system-ui, -apple-system, Segoe UI, Roboto';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        fitText(ctx, segments[i], r*0.6, 22);
+        ctx.restore();
+      }
+
+      // center cap
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 68, 0, Math.PI*2);
+      ctx.fillStyle = '#12162b';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#2b3158';
+      ctx.stroke();
+      ctx.font = 'bold 16px system-ui';
+      ctx.fillStyle = '#cdd3e0';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Spin!', cx, cy);
+      ctx.restore();
+    }
+
+    function fitText(ctx, text, maxWidth, baseSize) {
+      let size = baseSize;
+      ctx.font = `bold ${size}px system-ui, -apple-system, Segoe UI, Roboto`;
+      while (ctx.measureText(text).width > maxWidth && size > 10) {
+        size -= 1;
+        ctx.font = `bold ${size}px system-ui, -apple-system, Segoe UI, Roboto`;
+      }
+      ctx.fillText(text, 0, 0);
+    }
+
+    function pickByAngle(angle) {
+      const ranges = angleRanges();
+      const two = Math.PI*2;
+      let x = angle % two;
+      if (x < 0) x += two;
+      for (let i=0;i<ranges.length;i++) {
+        const [a0, a1] = ranges[i];
+        if (x >= a0 && x < a1) return i;
+      }
+      return ranges.length - 1;
+    }
+
+    function spin() {
+      if (isSpinning || segments.length === 0) return;
+      isSpinning = true;
+      lastTickIndex = -1;
+
+      // Für Optik und Konsistenz: nebeneinander halten
+      segments = enforcePairAdjacency(segments);
+      segmentsInput.value = segments.join('\n');
+
+      const duration = Math.max(1, Math.min(12, Number(spinTimeInput.value) || 5));
+
+      // Zielindex bestimmen: wenn forcedNextName gesetzt ist und vorhanden -> diesen wählen
+      let idx;
+      if (forcedNextName) {
+        const forcedIdx = segments.findIndex(n => norm(n) === norm(forcedNextName));
+        if (forcedIdx !== -1) {
+          idx = forcedIdx;
+        } else {
+          idx = weightedRandomIndex(weights); // falls nicht vorhanden, normal
+        }
+      } else {
+        idx = weightedRandomIndex(weights);
+      }
+
+      const ranges = angleRanges();
+      const [a0, a1] = ranges[idx];
+      const targetMid = (a0 + a1) / 2;
+      const two = Math.PI*2;
+      const pointerAngle = (-Math.PI/2 - startAngle) % two;
+      const current = (pointerAngle + two) % two;
+      let delta = (targetMid - current);
+      delta = ((delta % two) + two) % two;
+      const extra = two * (3 + Math.floor(Math.random()*2)); // 3-4 Umdrehungen
+      const totalDelta = delta + extra;
+
+      const frames = Math.max(60, Math.floor(60 * duration));
+      let t = 0;
+      const start = startAngle;
+      const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
+
+      function frame() {
+        t++;
+        const progress = t / frames;
+        const eased = easeOutCubic(progress);
+        const angleNow = start - (totalDelta * eased);
+        startAngle = angleNow;
+
+        if (clickSound.checked) {
+          const idxNow = pickByAngle((-Math.PI/2 - startAngle) % (Math.PI*2));
+          if (idxNow !== lastTickIndex) {
+            tick.currentTime = 0;
+            tick.play().catch(()=>{});
+            lastTickIndex = idxNow;
+          }
+        }
+
+        drawWheel();
+
+        if (t < frames) {
+          requestAnimationFrame(frame);
+        } else {
+          isSpinning = false;
+          startAngle = start - (delta + extra);
+          drawWheel();
+
+          const winIndex = idx;
+          const winText = segments[winIndex];
+          showResult(winText);
+          burstConfetti();
+
+          // NÄCHSTE-ZIEHUNG erzwingen je nach Gewinner
+          if (isLeon(winText)) {
+            // Nach Leon/Leon M muss Julien kommen
+            forcedNextName = 'Julien';
+          } else if (isJulien(winText)) {
+            // Nach Julien muss Leon oder Leon M kommen – bevorzuge "Leon", sonst "Leon M"
+            forcedNextName = segments.some(s => isLeon(s) && norm(s) === 'leon') ? 'Leon' :
+                             (segments.some(s => norm(s) === 'leon m') ? 'Leon M' : null);
+          } else {
+            // Keine erzwungene nächste Ziehung
+            forcedNextName = null;
+          }
+
+          if (removeWinner.checked) {
+            // Gewinner entfernen
+            segments.splice(winIndex, 1);
+            weights.splice(winIndex, 1);
+
+            // Falls wir gerade denjenigen entfernt haben, der als nächstes erzwungen wäre, prüfen
+            if (forcedNextName && segments.findIndex(n => norm(n) === norm(forcedNextName)) === -1) {
+              forcedNextName = null;
+            }
+
+            // Optik: Leon/Julien nebeneinander halten
+            segments = enforcePairAdjacency(segments);
+
+            segmentsInput.value = segments.join('\n');
+            weightsInput.value = weights.join(',');
+            setTimeout(() => parseSegments(), 250);
+          }
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function weightedRandomIndex(w) {
+      const total = w.reduce((a,b)=>a+b,0);
+      const r = Math.random() * total;
+      let acc = 0;
+      for (let i=0;i<w.length;i++) {
+        acc += w[i];
+        if (r < acc) return i;
+      }
+      return w.length - 1;
+    }
+
+    // Confetti (simple)
+    const confettiCanvas = document.getElementById('confetti');
+    const cctx = confettiCanvas.getContext('2d');
+    let confettiPieces = [];
+
+    function resizeConfetti() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+
+    function burstConfetti() {
+      const colors = ['#7c6cff','#00d4ff','#ffd166','#2ee6a6','#ff5d6c','#f15bb5'];
+      const count = 120;
+      const cx = confettiCanvas.width/2;
+      const cy = 80;
+      for (let i=0;i<count;i++) {
+        confettiPieces.push({
+          x: cx, y: cy,
+          vx: (Math.random()-0.5)*6,
+          vy: Math.random()*-8 - 3,
+          g: 0.2 + Math.random()*0.05,
+          s: 4 + Math.random()*4,
+          rot: Math.random()*Math.PI,
+          vr: (Math.random()-0.5)*0.3,
+          color: colors[i % colors.length],
+          life: 120 + Math.random()*60
+        });
+      }
+    }
+
+    function animateConfetti() {
+      cctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+      confettiPieces.forEach(p => {
+        p.vy += p.g;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        p.life -= 1;
+
+        cctx.save();
+        cctx.translate(p.x, p.y);
+        cctx.rotate(p.rot);
+        cctx.fillStyle = p.color;
+        cctx.fillRect(-p.s/2, -p.s/2, p.s, p.s * 0.6);
+        cctx.restore();
+      });
+      confettiPieces = confettiPieces.filter(p => p.life > 0 && p.y < confettiCanvas.height + 20);
+      requestAnimationFrame(animateConfetti);
+    }
+    animateConfetti();
+
+    function showResult(text) {
+      document.getElementById('result').innerHTML = 'Ergebnis: <span class="value">' + escapeHtml(text) + '</span>';
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    // Buttons
+    spinBtn.addEventListener('click', spin);
+    shuffleBtn.addEventListener('click', () => {
+      rngSeed = Math.floor(Math.random()*1e9);
+      buildColors();
+      drawWheel();
+    });
+    resetBtn.addEventListener('click', () => {
+      segmentsInput.value = `Herr aufm Kamp
+      Frau Borissov`;
+      weightsInput.value = '';
+      removeWinner.checked = false;
+      clickSound.checked = true;
+      spinTimeInput.value = 5;
+      rngSeed = Math.floor(Math.random()*1e9);
+      forcedNextName = null;
+      parseSegments();
+      showResult('–');
+    });
+    applyBtn.addEventListener('click', () => {
+      forcedNextName = null; // bei manueller Änderung Zwang zurücksetzen (optional)
+      parseSegments();
+    });
+
+    // Init
+    parseSegments();
+  </script>
 </body>
 </html>
